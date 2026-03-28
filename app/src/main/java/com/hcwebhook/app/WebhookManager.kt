@@ -30,19 +30,23 @@ class WebhookManager(
             return Result.failure(IllegalStateException("No webhook URLs configured"))
         }
 
+        var anySuccess = false
         var lastFailure: Exception? = null
 
-        // Try posting to all configured webhooks
         for (config in webhookConfigs) {
             val result = postToUrl(config, jsonPayload)
             if (result.isSuccess) {
-                return result // Success if at least one webhook succeeds
+                anySuccess = true
             } else {
                 lastFailure = result.exceptionOrNull() as? Exception ?: Exception("Unknown error")
             }
         }
 
-        return Result.failure(lastFailure ?: IOException("All webhook posts failed"))
+        return if (anySuccess) {
+            Result.success(Unit)
+        } else {
+            Result.failure(lastFailure ?: IOException("All webhook posts failed"))
+        }
     }
 
     private suspend fun postToUrl(config: WebhookConfig, jsonPayload: String): Result<Unit> {

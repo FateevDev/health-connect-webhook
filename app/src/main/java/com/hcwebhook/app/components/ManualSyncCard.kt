@@ -1,12 +1,12 @@
 package com.hcwebhook.app.components
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import com.hcwebhook.app.HealthConnectManager
@@ -14,6 +14,7 @@ import com.hcwebhook.app.PreferencesManager
 import com.hcwebhook.app.SyncManager
 import com.hcwebhook.app.SyncResult
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.text.KeyboardOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,14 +29,17 @@ fun ManualSyncCard(onSyncCompleted: () -> Unit = {}) {
     
     val webhookConfigs = preferencesManager.getWebhookConfigs()
 
+    var resendMode by remember { mutableStateOf(false) }
     val timeRangeOptions = listOf(
-        "Default (New data only)" to null,
-        "Past 1 Day" to 1,
-        "Past 7 Days" to 7,
-        "Past 30 Days" to 30
+        Triple(if (resendMode) "Default Lookback Window" else "Default (New data only)", null, false),
+        Triple("Past 1 Day", 1, false),
+        Triple("Past 7 Days", 7, false),
+        Triple("Past 30 Days", 30, false),
+        Triple("Custom Range", null, true)
     )
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionIndex by remember { mutableStateOf(0) }
+    var customRangeDays by remember { mutableStateOf("3") }
 
     // ── Confirmation Bottom Sheet ──────────────────────────────────────────────
     if (showConfirmSheet) {
@@ -51,7 +55,11 @@ fun ManualSyncCard(onSyncCompleted: () -> Unit = {}) {
             ) {
                 Text("Sync Now?", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "This will immediately send your health data to all configured webhooks.",
+                    if (resendMode) {
+                        "This will re-send data without advancing the sync cursor."
+                    } else {
+                        "This will immediately send your health data to all configured webhooks."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -85,7 +93,23 @@ fun ManualSyncCard(onSyncCompleted: () -> Unit = {}) {
                                 }
 
                                 val syncManager = SyncManager(context)
-                                val result = syncManager.performSync(timeRangeOptions[selectedOptionIndex].second)
+                                val selectedOption = timeRangeOptions[selectedOptionIndex]
+                                val customDays = if (selectedOption.third) {
+                                    customRangeDays.toIntOrNull()?.takeIf { it > 0 }
+                                } else {
+                                    null
+                                }
+
+                                if (selectedOption.third && customDays == null) {
+                                    syncMessage = "Enter a positive number of days for the custom range"
+                                    isSyncing = false
+                                    return@launch
+                                }
+
+                                val result = syncManager.performSync(
+                                    timeRangeDays = customDays ?: selectedOption.second,
+                                    resend = resendMode
+                                )
 
                                 when {
                                     result.isSuccess -> {
@@ -166,6 +190,37 @@ fun ManualSyncCard(onSyncCompleted: () -> Unit = {}) {
                         )
                     }
                 }
+            }
+            if (timeRangeOptions[selectedOptionIndex].third) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = customRangeDays,
+                    onValueChange = { customRangeDays = it },
+                    label = { Text("Custom Range (Days)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Resend mode", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Re-send data without advancing sync cursor",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = resendMode,
+                    onCheckedChange = { resendMode = it }
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
 

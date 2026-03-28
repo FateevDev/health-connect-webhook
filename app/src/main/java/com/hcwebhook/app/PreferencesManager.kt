@@ -35,6 +35,8 @@ class PreferencesManager(context: Context) {
         private const val KEY_EVENING_SYNC_MINUTE = "evening_sync_minute"
         private const val KEY_SYNC_MODE = "sync_mode"
         private const val KEY_SCHEDULED_SYNCS = "scheduled_syncs"
+        private const val KEY_LOOKBACK_HOURS = "lookback_hours"
+        private const val DEFAULT_LOOKBACK_HOURS = 48L
     }
 
 
@@ -62,6 +64,14 @@ class PreferencesManager(context: Context) {
 
     fun setSyncIntervalMinutes(minutes: Int) {
         prefs.edit().putInt(KEY_SYNC_INTERVAL_MINUTES, minutes).apply()
+    }
+
+    fun getLookbackHours(): Long {
+        return prefs.getLong(KEY_LOOKBACK_HOURS, DEFAULT_LOOKBACK_HOURS)
+    }
+
+    fun setLookbackHours(hours: Long) {
+        prefs.edit().putLong(KEY_LOOKBACK_HOURS, hours).apply()
     }
 
     fun getWebhookUrls(): List<String> {
@@ -266,6 +276,7 @@ class PreferencesManager(context: Context) {
             enabledDataTypes = getEnabledDataTypes().map { it.name },
             syncMode = getSyncMode().name,
             syncIntervalMinutes = getSyncIntervalMinutes(),
+            lookbackHours = getLookbackHours(),
             scheduledSyncs = getScheduledSyncs()
         )
     }
@@ -285,6 +296,7 @@ class PreferencesManager(context: Context) {
         setSyncMode(mode)
 
         setSyncIntervalMinutes(export.syncIntervalMinutes)
+        setLookbackHours(export.lookbackHours)
         setScheduledSyncs(export.scheduledSyncs)
     }
 }

@@ -1,6 +1,8 @@
 package com.hcwebhook.app.screens
 
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -12,9 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -35,8 +34,6 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import com.hcwebhook.app.*
 import com.hcwebhook.app.ui.theme.*
-import android.content.Intent
-import android.net.Uri
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -53,6 +50,7 @@ fun ConfigurationScreen(
     // State
     var syncMode by remember { mutableStateOf(preferencesManager.getSyncMode()) }
     var syncInterval by remember { mutableStateOf(preferencesManager.getSyncIntervalMinutes().toString()) }
+    var lookbackHours by remember { mutableStateOf(preferencesManager.getLookbackHours().toString()) }
     var scheduledSyncs by remember { mutableStateOf(preferencesManager.getScheduledSyncs()) }
     var enabledDataTypes by remember { mutableStateOf(preferencesManager.getEnabledDataTypes()) }
     
@@ -474,6 +472,30 @@ fun ConfigurationScreen(
                                 Text("Add Schedule Time")
                             }
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = lookbackHours,
+                        onValueChange = { lookbackHours = it },
+                        label = { Text("Lookback Window (Hours)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val hours = lookbackHours.toLongOrNull()
+                            if (hours != null && hours > 0) {
+                                preferencesManager.setLookbackHours(hours)
+                                Toast.makeText(context, "Lookback window saved", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Enter a positive number of hours", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Update Lookback")
                     }
                 }
             }

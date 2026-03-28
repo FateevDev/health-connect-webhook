@@ -13,5 +13,6 @@ data class SettingsExport(
     val enabledDataTypes: List<String> = emptyList(),
     val syncMode: String = SyncMode.INTERVAL.name,
     val syncIntervalMinutes: Int = 60,
+    val lookbackHours: Long = 48L,
     val scheduledSyncs: List<ScheduledSync> = emptyList()
 )
